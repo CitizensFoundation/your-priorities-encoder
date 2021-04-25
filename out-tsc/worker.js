@@ -1,77 +1,62 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = __importDefault(require("path"));
-const Queue = require('bull');
-const ffmpegStatic = require('ffmpeg-static');
-const ffprobeStatic = require('ffprobe-static');
-const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(ffmpegStatic.path);
-ffmpeg.setFfprobePath(ffprobeStatic.path);
-const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const videoQueue = new Queue('video transcoding', redisUrl);
-const audioQueue = new Queue('audio transcoding', redisUrl);
-videoQueue.process((job, done) => {
-    // job.data contains the custom data passed when the job was created
-    // job.id contains id of this job.
-    const encodingInstructions = job;
-    const startTime = Date.now();
-    const inputAsset = path_1.default.join(encodingInstructions.inputFolder, encodingInstructions.inputAsset);
-    const outputAsset = path_1.default.join(encodingInstructions.outputFolder, encodingInstructions.outputAsset);
-    console.debug(`input: ${inputAsset}`);
-    console.debug(`output: ${outputAsset}`);
-    const ffmpegCommand = ffmpeg()
-        .input(inputAsset)
-        .videoBitrate(encodingInstructions.videoBitrate)
-        .videoCodec(encodingInstructions.videoEncoder)
-        .size(encodingInstructions.videoSize)
-        .audioCodec(encodingInstructions.audioEncoder)
-        .audioBitrate(encodingInstructions.audioBitrate)
-        .audioFrequency(encodingInstructions.audioFrequency)
-        .withOutputOptions('-force_key_frames "expr:gte(t,n_forced*2)"')
-        .outputOption('-x265-params keyint=48:min-keyint=48:scenecut=0:ref=5:bframes=3:b-adapt=2')
-        .on('progress', (info) => {
-        const message = {};
-        message.type = constants.WORKER_MESSAGE_TYPES.PROGRESS;
-        message.message = `Encoding: ${Math.round(info.percent)}%`;
-        parentPort.postMessage(message);
-    })
-        .on('end', () => {
-        const message = {};
-        message.type = constants.WORKER_MESSAGE_TYPES.DONE;
-        const endTime = Date.now();
-        message.message = `Encoding finished after ${(endTime - startTime) / 1000} s`;
-        parentPort.postMessage(message);
-    })
-        .on('error', (err, stdout, stderr) => {
-        const message = {};
-        message.type = constants.WORKER_MESSAGE_TYPES.ERROR;
-        message.message = `An error occurred during encoding. ${err.message}`;
-        parentPort.postMessage(message);
-        console.error(`Error: ${err.message}`);
-        console.error(`ffmpeg output: ${stdout}`);
-        console.error(`ffmpeg stderr: ${stderr}`);
-    })
-        .save(outputAsset);
-    // https://morioh.com/p/6b43e4ff07d0
-    var proc = ffmpeg(sourceFilePath)
-        .on('filenames', function (filenames) {
-        console.log('screenshots are ' + filenames.join(', '));
-    })
-        .on('end', function () {
-        console.log('screenshots were saved');
-    })
-        .on('error', function (err) {
-        console.log('an error happened: ' + err.message);
-    })
-        // take 1 screenshots at predefined timemarks and size
-        .takeScreenshots({ count: 1, timemarks: ['00:00:01.000'], size: '200x200' }, "Video/");
-    // transcode video asynchronously and report progress
-    job.progress(42);
-    // call done when finished
-    done();
-    // or give a error if error
-    done(new Error('error transcoding'));
+const models_1 = require("./models");
+const fs = require("fs");
+const _ = require("lodash");
+const Queue = require("bull");
+const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+const videoQueue = new Queue("video transcoding", redisUrl);
+const audioQueue = new Queue("audio transcoding", redisUrl);
+const uploadAllToS3 = require('s3').uploadAllToS3;
+const uploadToS3 = require('s3').uploadToS3;
+const downloadFromS3 = require('s3').downloadFromS3;
+const encodeVideo = require('video').encodeVideo;
+const createScreenshots = require('video').createScreenshots;
+videoQueue.process(async (job, done) => {
+    let acBackgroundJob = null;
+    try {
+        const jobData = job.data;
+        acBackgroundJob = await models_1.models.AcBackgroundJob.findOne({
+            where: {
+                id: jobData.acBackgroundJobId,
+            },
+        });
+        if (acBackgroundJob) {
+            const tempInDir = `/tmp/${acBackgroundJob.id}/in`;
+            const tempOutVideoDir = `/tmp/${acBackgroundJob.id}/outVideo`;
+            const tempOutVThumbnailDir = `/tmp/${acBackgroundJob.id}/outThumbnails`;
+            await fs.promises.mkdir(tempInDir, { recursive: true });
+            await fs.promises.mkdir(tempOutVideoDir, { recursive: true });
+            await fs.promises.mkdir(tempOutVThumbnailDir, { recursive: true });
+            const videoInFilename = `${tempInDir}/${jobData.fileKey}`;
+            const videoOutFilename = `${tempInDir}/${jobData.fileKey}`;
+            await downloadFromS3(process.env.S3_VIDEO_UPLOAD_BUCKET, jobData.fileKey, videoInFilename);
+            const videoDuration = await encodeVideo(videoInFilename, videoOutFilename, tempOutVThumbnailDir, jobData, acBackgroundJob);
+            await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.fileKey, videoOutFilename);
+            await createScreenshots(videoOutFilename, tempOutVThumbnailDir, jobData, videoDuration);
+            await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
+            acBackgroundJob.progress = 100;
+            acBackgroundJob.data.finalDuration = videoDuration;
+            acBackgroundJob.data.status = "Complete";
+        }
+        else {
+            console.error("Can't find acBackgroundJob");
+            done("Can't find acBackgroundJob");
+        }
+    }
+    catch (error) {
+        if (acBackgroundJob) {
+            try {
+                acBackgroundJob.progress = 0;
+                acBackgroundJob.data.status = "Error";
+                await acBackgroundJob.save();
+            }
+            catch (innerError) {
+                console.error(innerError);
+                done(error);
+            }
+        }
+        console.error(error);
+        done(error);
+    }
 });

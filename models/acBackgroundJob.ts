@@ -19,7 +19,7 @@ export class AcBackgroundJob
   extends Model<AcBackgroundJobAttributes, AcBackgroundJobCreationAttributes>
   implements AcBackgroundJobAttributes {
   public id!: number;
-  public data!: object;
+  public data!: AcBackgroundJobDataAttributes;
   public error!: string;
   public progress!: number;
 
