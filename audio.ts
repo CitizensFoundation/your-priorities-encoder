@@ -19,13 +19,12 @@ export const encodeAudio = async (
         .setFfmpegPath(ffmpegStatic)
         .setFfprobePath(ffprobeStatic.path)
         .input(audioInFilename)
-        .audioCodec("h264")
         .audioCodec("aac")
         .audioBitrate(160)
         .audioFrequency(44100)
         .on("progress", async (info: any) => {
-          acBackgroundJob.progress = info.percent / 2;
-          await acBackgroundJob.save();
+          //acBackgroundJob.progress = info.percent / 2;
+          //await acBackgroundJob.save();
         })
         .on("end", () => {
           ffmpeg.ffprobe(audioOutFilename, (err: string, metadata: any) => {

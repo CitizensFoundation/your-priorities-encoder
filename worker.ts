@@ -138,7 +138,7 @@ audioQueue.process(async (job: Job, done: Function) => {
       await fs.promises.mkdir(tempInDir, { recursive: true });
       await fs.promises.mkdir(tempOutAudioDir, { recursive: true });
       const audioInFilename = `${tempInDir}/${jobData.fileKey}`;
-      const audioOutFilename = `${tempInDir}/${jobData.fileKey}`;
+      const audioOutFilename = `${tempOutAudioDir}/${jobData.fileKey}`;
 
       console.log(`Audio Download from S3`)
 
@@ -169,7 +169,8 @@ audioQueue.process(async (job: Job, done: Function) => {
 
       acBackgroundJob.progress = 100;
       acBackgroundJob.data.finalDuration = audioDuration;
-      acBackgroundJob.data.status = "Complete";
+      //@ts-ignore
+      acBackgroundJob.set('data.status', "Complete");
       await acBackgroundJob.save();
 
       console.log(`Audio Job ${job.id} Completed`)
@@ -183,7 +184,8 @@ audioQueue.process(async (job: Job, done: Function) => {
     if (acBackgroundJob) {
       try {
         acBackgroundJob.progress = 0;
-        acBackgroundJob.data.status = "Error";
+        //@ts-ignore
+        acBackgroundJob.set('data.status', "Error");
         await acBackgroundJob.save();
       } catch (innerError) {
         console.error(innerError);

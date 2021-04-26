@@ -40,9 +40,9 @@ videoQueue.process(async (job, done) => {
             console.log(`Video duration: ${videoDuration}`);
             console.log(`Video Upload to S3`);
             await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.fileKey, videoOutFilename);
-            console.log(`Screenshots Upload to S3`);
+            console.log(`Screenshots created`);
             await createScreenshots(videoOutFilename, tempOutVThumbnailDir, jobData, videoDuration);
-            console.log(`Screenshots Uploaded`);
+            console.log(`Screenshots Uploaded to S3`);
             await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
             console.log(`Video Completed saving...`);
             acBackgroundJob.progress = 100;
@@ -92,7 +92,7 @@ audioQueue.process(async (job, done) => {
             await fs.promises.mkdir(tempInDir, { recursive: true });
             await fs.promises.mkdir(tempOutAudioDir, { recursive: true });
             const audioInFilename = `${tempInDir}/${jobData.fileKey}`;
-            const audioOutFilename = `${tempInDir}/${jobData.fileKey}`;
+            const audioOutFilename = `${tempOutAudioDir}/${jobData.fileKey}`;
             console.log(`Audio Download from S3`);
             await downloadFromS3(process.env.S3_AUDIO_UPLOAD_BUCKET, jobData.fileKey, audioInFilename);
             console.log(`Audio Encoding`);
@@ -102,7 +102,8 @@ audioQueue.process(async (job, done) => {
             await uploadToS3(process.env.S3_AUDIO_PUBLIC_BUCKET, jobData.fileKey, audioOutFilename);
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = audioDuration;
-            acBackgroundJob.data.status = "Complete";
+            //@ts-ignore
+            acBackgroundJob.set('data.status', "Complete");
             await acBackgroundJob.save();
             console.log(`Audio Job ${job.id} Completed`);
             done();
@@ -116,7 +117,8 @@ audioQueue.process(async (job, done) => {
         if (acBackgroundJob) {
             try {
                 acBackgroundJob.progress = 0;
-                acBackgroundJob.data.status = "Error";
+                //@ts-ignore
+                acBackgroundJob.set('data.status', "Error");
                 await acBackgroundJob.save();
             }
             catch (innerError) {
