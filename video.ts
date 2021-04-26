@@ -93,7 +93,7 @@ export const createScreenshots = async (
   return await new Promise(async (resolve, reject) => {
     try {
       let screenshotConfig = {
-        filename: jobData.thumbnailPattern.replace("{count}", "%0000i"),
+        filename: jobData.thumbnailPattern.replace("{count}", "%0000i")+".png",
         folder: outFolder,
         size: "864x486",
       };
@@ -108,6 +108,8 @@ export const createScreenshots = async (
         });
       }
       ffmpeg(filename)
+        .setFfmpegPath(ffmpegStatic)
+        .setFfprobePath(ffprobeStatic.path)
         .screenshots(screenshotConfig)
         .on("end", () => {
           resolve(true);

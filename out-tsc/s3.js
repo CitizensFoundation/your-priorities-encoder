@@ -24,7 +24,8 @@ const uploadToS3 = async (bucket, keyName, filename) => {
                         Bucket: bucket,
                         Key: keyName,
                         Body: data,
-                    });
+                        ACL: 'public-read'
+                    }).promise();
                     resolve(results);
                 }
             });
@@ -62,7 +63,7 @@ const uploadAllToS3 = async (folderName, bucket) => {
                 }
                 else {
                     files.forEach(async (file) => {
-                        await uploadToS3(bucket, file, file);
+                        await uploadToS3(bucket, file, `${folderName}/${file}`);
                     });
                     resolve(true);
                 }
