@@ -7,6 +7,7 @@ const s3 = new aws.S3({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     endpoint: endPoint,
+    s3ForcePathStyle: process.env.S3_FORCE_PATH_STYLE ? true : false,
     region: process.env.S3_REGION ||
         (process.env.S3_ENDPOINT || process.env.S3_ACCELERATED_ENDPOINT
             ? null

@@ -2,7 +2,7 @@
   "name": "your-priorities-encoder",
   "version": "1.0.0",
   "main": "worker.js",
-  "license": "AGPL",
+  "license": "AGPL-3.0",
   "scripts": {
     "build": "tsc --project . --outDir ./out-tsc"
   },
