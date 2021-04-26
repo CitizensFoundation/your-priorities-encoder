@@ -40,8 +40,11 @@ videoQueue.process(async (job, done) => {
             console.log(`Video duration: ${videoDuration}`);
             console.log(`Video Upload to S3`);
             await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.fileKey, videoOutFilename);
+            console.log(`Screenshots Upload to S3`);
             await createScreenshots(videoOutFilename, tempOutVThumbnailDir, jobData, videoDuration);
+            console.log(`Screenshots Uploaded`);
             await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
+            console.log(`Video Completed saving...`);
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = videoDuration;
             //@ts-ignore

@@ -72,6 +72,8 @@ videoQueue.process(async (job: Job, done: Function) => {
         videoOutFilename
       );
 
+      console.log(`Screenshots created`)
+
       await createScreenshots(
         videoOutFilename,
         tempOutVThumbnailDir,
@@ -79,10 +81,14 @@ videoQueue.process(async (job: Job, done: Function) => {
         videoDuration as number
       );
 
+      console.log(`Screenshots Uploaded to S3`)
+
       await uploadAllToS3(
         tempOutVThumbnailDir,
         process.env.S3_VIDEO_THUMBNAIL_BUCKET!
       );
+
+      console.log(`Video Completed saving...`)
 
       acBackgroundJob.progress = 100;
       acBackgroundJob.data.finalDuration = videoDuration;

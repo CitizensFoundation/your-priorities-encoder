@@ -62,9 +62,9 @@ const uploadAllToS3 = async (folderName, bucket) => {
                     reject(err);
                 }
                 else {
-                    files.forEach(async (file) => {
-                        await uploadToS3(bucket, file, `${folderName}/${file}`);
-                    });
+                    for (let i = 0; i < files.length; i++) {
+                        await uploadToS3(bucket, files[i], `${folderName}/${files[i]}`);
+                    }
                     resolve(true);
                 }
             });
