@@ -90,23 +90,25 @@ videoQueue.process(async (job: Job, done: Function) => {
         process.env.S3_VIDEO_THUMBNAIL_BUCKET!
       );
 
-      console.log('Encode flac')
+      if (process.env.GOOGLE_TRANSCODING_FLAC_BUCKET) {
+        console.log('Encode flac')
 
-      const hasFlac = await encodeFlac(
-        videoOutFilename,
-        videoOutFlacFilename
-      ) as boolean;
-
-      if (hasFlac) {
-        console.log('Uploading flac')
-
-        await uploadToS3(
-          process.env.S3_VIDEO_PUBLIC_BUCKET!,
-          jobData.flacFilename,
+        const hasFlac = await encodeFlac(
+          videoOutFilename,
           videoOutFlacFilename
-        );
-      } else {
-        console.warn("No flac produced");
+        ) as boolean;
+
+        if (hasFlac) {
+          console.log('Uploading flac')
+
+          await uploadToS3(
+            process.env.S3_VIDEO_PUBLIC_BUCKET!,
+            jobData.flacFilename,
+            videoOutFlacFilename
+          );
+        } else {
+          console.warn("No flac produced");
+        }
       }
 
       console.log(`Video Completed saving...`)
@@ -189,20 +191,22 @@ audioQueue.process(async (job: Job, done: Function) => {
         audioOutFilename
       );
 
-      console.log('Encode flac')
+      if (process.env.GOOGLE_TRANSCODING_FLAC_BUCKET) {
+        console.log('Encode flac')
 
-      await encodeFlac(
-        audioOutFilename,
-        audioOutFlacFilename
-      );
+        await encodeFlac(
+          audioOutFilename,
+          audioOutFlacFilename
+        );
 
-      console.log('Uploading flac')
+        console.log('Uploading flac')
 
-      await uploadToS3(
-        process.env.S3_AUDIO_PUBLIC_BUCKET!,
-        jobData.flacFilename,
-        audioOutFlacFilename
-      );
+        await uploadToS3(
+          process.env.S3_AUDIO_PUBLIC_BUCKET!,
+          jobData.flacFilename,
+          audioOutFlacFilename
+        );
+      }
 
       acBackgroundJob.progress = 100;
       acBackgroundJob.data.finalDuration = audioDuration;

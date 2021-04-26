@@ -46,14 +46,16 @@ videoQueue.process(async (job, done) => {
             await createScreenshots(videoOutFilename, tempOutVThumbnailDir, jobData, videoDuration);
             console.log(`Screenshots Uploaded to S3`);
             await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
-            console.log('Encode flac');
-            const hasFlac = await encodeFlac(videoOutFilename, videoOutFlacFilename);
-            if (hasFlac) {
-                console.log('Uploading flac');
-                await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.flacFilename, videoOutFlacFilename);
-            }
-            else {
-                console.warn("No flac produced");
+            if (process.env.GOOGLE_TRANSCODING_FLAC_BUCKET) {
+                console.log('Encode flac');
+                const hasFlac = await encodeFlac(videoOutFilename, videoOutFlacFilename);
+                if (hasFlac) {
+                    console.log('Uploading flac');
+                    await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.flacFilename, videoOutFlacFilename);
+                }
+                else {
+                    console.warn("No flac produced");
+                }
             }
             console.log(`Video Completed saving...`);
             acBackgroundJob.progress = 100;
@@ -112,10 +114,12 @@ audioQueue.process(async (job, done) => {
             console.log(`Audio duration: ${audioDuration}`);
             console.log(`Audio Upload to S3`);
             await uploadToS3(process.env.S3_AUDIO_PUBLIC_BUCKET, jobData.fileKey, audioOutFilename);
-            console.log('Encode flac');
-            await encodeFlac(audioOutFilename, audioOutFlacFilename);
-            console.log('Uploading flac');
-            await uploadToS3(process.env.S3_AUDIO_PUBLIC_BUCKET, jobData.flacFilename, audioOutFlacFilename);
+            if (process.env.GOOGLE_TRANSCODING_FLAC_BUCKET) {
+                console.log('Encode flac');
+                await encodeFlac(audioOutFilename, audioOutFlacFilename);
+                console.log('Uploading flac');
+                await uploadToS3(process.env.S3_AUDIO_PUBLIC_BUCKET, jobData.flacFilename, audioOutFlacFilename);
+            }
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = audioDuration;
             //@ts-ignore
