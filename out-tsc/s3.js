@@ -14,25 +14,27 @@ const s3 = new aws.S3({
 });
 const uploadToS3 = async (bucket, keyName, filename) => {
     return await new Promise(async (resolve, reject) => {
-        try {
-            fs.readFile(filename, async (error, data) => {
+        fs.readFile(filename, async (error, data) => {
+            try {
                 if (error) {
                     reject(error);
                 }
                 else {
-                    const results = await s3.upload({
+                    const results = await s3
+                        .upload({
                         Bucket: bucket,
                         Key: keyName,
                         Body: data,
-                        ACL: 'public-read'
-                    }).promise();
+                        ACL: "public-read",
+                    })
+                        .promise();
                     resolve(results);
                 }
-            });
-        }
-        catch (error) {
-            reject(error);
-        }
+            }
+            catch (error) {
+                reject(error);
+            }
+        });
     });
 };
 const downloadFromS3 = async (bucket, keyName, saveLocation) => {
@@ -78,5 +80,5 @@ module.exports = {
     uploadAllToS3,
     downloadFromS3,
     uploadToS3,
-    s3
+    s3,
 };

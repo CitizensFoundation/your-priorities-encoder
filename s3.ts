@@ -21,23 +21,25 @@ const uploadToS3 = async (
   filename: string
 ) => {
   return await new Promise(async (resolve, reject) => {
-    try {
-      fs.readFile(filename, async (error:string, data:any) => {
+    fs.readFile(filename, async (error: string, data: any) => {
+      try {
         if (error) {
           reject(error);
         } else {
-          const results = await s3.upload({
-            Bucket: bucket,
-            Key: keyName,
-            Body: data,
-            ACL: 'public-read'
-          }).promise();
+          const results = await s3
+            .upload({
+              Bucket: bucket,
+              Key: keyName,
+              Body: data,
+              ACL: "public-read",
+            })
+            .promise();
           resolve(results);
         }
-      });
-    } catch (error) {
-      reject(error);
-    }
+      } catch (error) {
+        reject(error);
+      }
+    });
   });
 };
 
@@ -52,10 +54,10 @@ const downloadFromS3 = async (
         Bucket: bucket,
         Key: keyName,
       };
-      console.log(`DL1 ${params}`)
+      console.log(`DL1 ${params}`);
       const { Body } = await s3.getObject(params).promise();
-      fs.writeFile(saveLocation, Body, (completed:any) => {
-        console.log(`Saved: ${completed}`)
+      fs.writeFile(saveLocation, Body, (completed: any) => {
+        console.log(`Saved: ${completed}`);
         resolve(true);
       });
     } catch (error) {
@@ -71,7 +73,7 @@ const uploadAllToS3 = async (folderName: string, bucket: string) => {
         if (err) {
           reject(err);
         } else {
-          for (let i=0;i<files.length;i++) {
+          for (let i = 0; i < files.length; i++) {
             await uploadToS3(bucket, files[i], `${folderName}/${files[i]}`);
           }
           resolve(true);
@@ -87,5 +89,5 @@ module.exports = {
   uploadAllToS3,
   downloadFromS3,
   uploadToS3,
-  s3
+  s3,
 };

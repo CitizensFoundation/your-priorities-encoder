@@ -13,6 +13,7 @@ const downloadFromS3 = require('./s3').downloadFromS3;
 const encodeVideo = require('./video').encodeVideo;
 const createScreenshots = require('./video').createScreenshots;
 const encodeAudio = require('./audio').encodeAudio;
+const encodeFlac = require('./audio').encodeFlac;
 videoQueue.process(async (job, done) => {
     let acBackgroundJob = null;
     console.log(`Got job ${job.id} ${JSON.stringify(job.data)}`);
@@ -33,6 +34,7 @@ videoQueue.process(async (job, done) => {
             await fs.promises.mkdir(tempOutVThumbnailDir, { recursive: true });
             const videoInFilename = `${tempInDir}/${jobData.fileKey}`;
             const videoOutFilename = `${tempOutVideoDir}/${jobData.fileKey}`;
+            const videoOutFlacFilename = `${tempOutVideoDir}/${jobData.flacFilename}`;
             console.log(`Video Download from S3`);
             await downloadFromS3(process.env.S3_VIDEO_UPLOAD_BUCKET, jobData.fileKey, videoInFilename);
             console.log(`Video Encoding`);
@@ -44,6 +46,10 @@ videoQueue.process(async (job, done) => {
             await createScreenshots(videoOutFilename, tempOutVThumbnailDir, jobData, videoDuration);
             console.log(`Screenshots Uploaded to S3`);
             await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
+            console.log('Encode flac');
+            await encodeFlac(videoOutFilename, videoOutFlacFilename);
+            console.log('Uploading flac');
+            await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.flacFilename, videoOutFlacFilename);
             console.log(`Video Completed saving...`);
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = videoDuration;
@@ -93,6 +99,7 @@ audioQueue.process(async (job, done) => {
             await fs.promises.mkdir(tempOutAudioDir, { recursive: true });
             const audioInFilename = `${tempInDir}/${jobData.fileKey}`;
             const audioOutFilename = `${tempOutAudioDir}/${jobData.fileKey}`;
+            const audioOutFlacFilename = `${tempOutAudioDir}/${jobData.flacFilename}`;
             console.log(`Audio Download from S3`);
             await downloadFromS3(process.env.S3_AUDIO_UPLOAD_BUCKET, jobData.fileKey, audioInFilename);
             console.log(`Audio Encoding`);
@@ -100,6 +107,10 @@ audioQueue.process(async (job, done) => {
             console.log(`Audio duration: ${audioDuration}`);
             console.log(`Audio Upload to S3`);
             await uploadToS3(process.env.S3_AUDIO_PUBLIC_BUCKET, jobData.fileKey, audioOutFilename);
+            console.log('Encode flac');
+            await encodeFlac(audioOutFilename, audioOutFlacFilename);
+            console.log('Uploading flac');
+            await uploadToS3(process.env.S3_AUDIO_PUBLIC_BUCKET, jobData.flacFilename, audioOutFlacFilename);
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = audioDuration;
             //@ts-ignore

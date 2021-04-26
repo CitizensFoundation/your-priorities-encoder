@@ -16,7 +16,7 @@ interface JobDataAttributes {
   fileKey: string;
   duration: string;
   thumbnailPattern: string;
-  flackFilename: string;
+  flacFilename: string;
   portrait: boolean;
   acBackgroundJobId: number;
 }

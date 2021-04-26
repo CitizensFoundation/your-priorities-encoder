@@ -48,6 +48,40 @@ export const encodeAudio = async (
   })) as number;
 };
 
+export const encodeFlac = async (
+  videoInFilename: string,
+  audioOutFilename: string
+) => {
+  return (await new Promise(async (resolve, reject) => {
+    try {
+
+      ffmpeg()
+        .setFfmpegPath(ffmpegStatic)
+        .setFfprobePath(ffprobeStatic.path)
+        .input(videoInFilename)
+        .audioCodec("flac")
+        .on("progress", async (info: any) => {
+          //acBackgroundJob.progress = info.percent / 2;
+          //await acBackgroundJob.save();
+        })
+        .on("end", () => {
+          resolve(0);
+        })
+        .on("error", (err: any, stdout: string, stderr: string) => {
+          console.error(`Error: ${err.message}`);
+          console.error(`ffmpeg output: ${stdout}`);
+          console.error(`ffmpeg stderr: ${stderr}`);
+          reject(err);
+        })
+        .save(audioOutFilename);
+    } catch (error) {
+      reject(error);
+    }
+  })) as number;
+};
+
+
 module.exports = {
-  encodeAudio
+  encodeAudio,
+  encodeFlac
 };
