@@ -1,12 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createScreenshots = exports.encodeVideo = void 0;
 const ffmpegStatic = require("ffmpeg-static");
 const ffprobeStatic = require("ffprobe-static");
 const ffmpeg = require("fluent-ffmpeg");
+const _ = require("lodash");
 ffmpeg.setFfmpegPath(ffmpegStatic.path);
 ffmpeg.setFfprobePath(ffprobeStatic.path);
-const encodeVideo = async (videoInFilename, videoOutFilename, thumbnailOutFolder, jobData, acBackgroundJob) => {
-    return await new Promise(async (resolve, reject) => {
+const encodeVideo = async (videoInFilename, videoOutFilename, jobData, acBackgroundJob) => {
+    return (await new Promise(async (resolve, reject) => {
         try {
             let height, width;
             if (jobData.portrait) {
@@ -25,9 +27,8 @@ const encodeVideo = async (videoInFilename, videoOutFilename, thumbnailOutFolder
                 .audioCodec("AAC")
                 .audioBitrate(160)
                 .audioFrequency(44100)
-                .withOutputOptions('-force_key_frames "expr:gte(t,n_forced*2)"')
-                .outputOption("-x265-params keyint=48:min-keyint=48:scenecut=0:ref=5:bframes=3:b-adapt=2")
-                .takeScreenshots({ count: 1, timemarks: ["00:00:01.000"], size: "200x200" }, thumbnailOutFolder)
+                .withOutputOptions('-crf 23 -force_key_frames "expr:gte(t,n_forced*2)"')
+                .outputOption("-g 48 -keyint_min 48 -sc_threshold 0 -bf 3 -b_strategy 2 -refs 5")
                 .on("progress", async (info) => {
                 acBackgroundJob.progress = info.percent / 2;
                 await acBackgroundJob.save();
@@ -53,13 +54,14 @@ const encodeVideo = async (videoInFilename, videoOutFilename, thumbnailOutFolder
         catch (error) {
             reject(error);
         }
-    });
+    }));
 };
+exports.encodeVideo = encodeVideo;
 const createScreenshots = async (filename, outFolder, jobData, duration) => {
     return await new Promise(async (resolve, reject) => {
         try {
             let screenshotConfig = {
-                filename: jobData.thumbnailPattern.replace("{count}", "%000i"),
+                filename: jobData.thumbnailPattern.replace("{count}", "%0000i"),
                 folder: outFolder,
                 size: "864x486",
             };
@@ -90,7 +92,8 @@ const createScreenshots = async (filename, outFolder, jobData, duration) => {
         }
     });
 };
+exports.createScreenshots = createScreenshots;
 module.exports = {
-    createScreenshots,
-    encodeVideo
+    createScreenshots: exports.createScreenshots,
+    encodeVideo: exports.encodeVideo
 };

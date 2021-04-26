@@ -78,5 +78,5 @@ module.exports = {
   uploadAllToS3,
   downloadFromS3,
   uploadToS3,
-  s3,
+  s3
 };
