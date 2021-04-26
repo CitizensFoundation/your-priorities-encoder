@@ -92,18 +92,22 @@ videoQueue.process(async (job: Job, done: Function) => {
 
       console.log('Encode flac')
 
-      await encodeFlac(
+      const hasFlac = await encodeFlac(
         videoOutFilename,
         videoOutFlacFilename
-      );
+      ) as boolean;
 
-      console.log('Uploading flac')
+      if (hasFlac) {
+        console.log('Uploading flac')
 
-      await uploadToS3(
-        process.env.S3_VIDEO_PUBLIC_BUCKET!,
-        jobData.flacFilename,
-        videoOutFlacFilename
-      );
+        await uploadToS3(
+          process.env.S3_VIDEO_PUBLIC_BUCKET!,
+          jobData.flacFilename,
+          videoOutFlacFilename
+        );
+      } else {
+        console.warn("No flac produced");
+      }
 
       console.log(`Video Completed saving...`)
 

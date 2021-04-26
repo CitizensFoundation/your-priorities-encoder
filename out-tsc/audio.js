@@ -57,7 +57,7 @@ const encodeFlac = async (videoInFilename, audioOutFilename) => {
                 //await acBackgroundJob.save();
             })
                 .on("end", () => {
-                resolve(0);
+                resolve(1);
             })
                 .on("error", (err, stdout, stderr) => {
                 console.error(`Error: ${err.message}`);
@@ -68,7 +68,8 @@ const encodeFlac = async (videoInFilename, audioOutFilename) => {
                 .save(audioOutFilename);
         }
         catch (error) {
-            reject(error);
+            console.error(error);
+            resolve(0);
         }
     }));
 };

@@ -65,7 +65,7 @@ export const encodeFlac = async (
           //await acBackgroundJob.save();
         })
         .on("end", () => {
-          resolve(0);
+          resolve(1);
         })
         .on("error", (err: any, stdout: string, stderr: string) => {
           console.error(`Error: ${err.message}`);
@@ -75,7 +75,8 @@ export const encodeFlac = async (
         })
         .save(audioOutFilename);
     } catch (error) {
-      reject(error);
+      console.error(error);
+      resolve(0);
     }
   })) as number;
 };

@@ -47,9 +47,14 @@ videoQueue.process(async (job, done) => {
             console.log(`Screenshots Uploaded to S3`);
             await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
             console.log('Encode flac');
-            await encodeFlac(videoOutFilename, videoOutFlacFilename);
-            console.log('Uploading flac');
-            await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.flacFilename, videoOutFlacFilename);
+            const hasFlac = await encodeFlac(videoOutFilename, videoOutFlacFilename);
+            if (hasFlac) {
+                console.log('Uploading flac');
+                await uploadToS3(process.env.S3_VIDEO_PUBLIC_BUCKET, jobData.flacFilename, videoOutFlacFilename);
+            }
+            else {
+                console.warn("No flac produced");
+            }
             console.log(`Video Completed saving...`);
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = videoDuration;
