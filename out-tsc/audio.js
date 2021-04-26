@@ -4,15 +4,17 @@ exports.encodeAudio = void 0;
 const ffmpegStatic = require("ffmpeg-static");
 const ffprobeStatic = require("ffprobe-static");
 const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(ffmpegStatic.path);
+ffmpeg.setFfmpegPath(ffmpegStatic);
 ffmpeg.setFfprobePath(ffprobeStatic.path);
 const encodeAudio = async (audioInFilename, audioOutFilename, jobData, acBackgroundJob) => {
     return (await new Promise(async (resolve, reject) => {
         try {
             ffmpeg()
+                .setFfmpegPath(ffmpegStatic)
+                .setFfprobePath(ffprobeStatic.path)
                 .input(audioInFilename)
                 .audioCodec("h264")
-                .audioCodec("AAC")
+                .audioCodec("aac")
                 .audioBitrate(160)
                 .audioFrequency(44100)
                 .on("progress", async (info) => {

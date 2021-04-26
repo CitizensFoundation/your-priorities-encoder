@@ -3,10 +3,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createScreenshots = exports.encodeVideo = void 0;
 const ffmpegStatic = require("ffmpeg-static");
 const ffprobeStatic = require("ffprobe-static");
-const ffmpeg = require("fluent-ffmpeg");
 const _ = require("lodash");
-ffmpeg.setFfmpegPath(ffmpegStatic.path);
+process.env.FFMPEG_PATH = ffmpegStatic;
+process.env.FFPROBE_PATH = ffprobeStatic.path;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegStatic);
 ffmpeg.setFfprobePath(ffprobeStatic.path);
+console.log(`ffprope ${ffprobeStatic.path}`);
+ffmpeg.getAvailableEncoders((err, encoders) => {
+    //console.log('getAvailableEncoders', encoders);
+});
+console.log(`ffmpeg path ${ffmpegStatic}`);
 const encodeVideo = async (videoInFilename, videoOutFilename, jobData, acBackgroundJob) => {
     return (await new Promise(async (resolve, reject) => {
         try {
@@ -20,20 +27,27 @@ const encodeVideo = async (videoInFilename, videoOutFilename, jobData, acBackgro
                 height = 720;
             }
             ffmpeg()
+                .setFfmpegPath(ffmpegStatic)
+                .setFfprobePath(ffprobeStatic.path)
                 .input(videoInFilename)
                 .videoBitrate(2400)
-                .videoCodec("h264")
+                .videoCodec("libx264")
                 .size(`${width}x${height}`)
-                .audioCodec("AAC")
+                .audioCodec("aac")
                 .audioBitrate(160)
                 .audioFrequency(44100)
-                .withOutputOptions('-crf 23 -force_key_frames "expr:gte(t,n_forced*2)"')
-                .outputOption("-g 48 -keyint_min 48 -sc_threshold 0 -bf 3 -b_strategy 2 -refs 5")
-                .on("progress", async (info) => {
-                acBackgroundJob.progress = info.percent / 2;
-                await acBackgroundJob.save();
+                .outputOption(
+            //          '-crf 23',
+            //         '-force_key_frames "expr:gte(t,n_forced*2)"',
+            //      '-profile:v baseline',
+            "-g 48")
+                .on("progress", (info) => {
+                console.log(`Video progress ${info}`);
+                //acBackgroundJob.progress = info.percent / 2;
+                //await acBackgroundJob.save();
             })
                 .on("end", () => {
+                console.log(`Video Encoding End ${videoOutFilename}`);
                 ffmpeg.ffprobe(videoOutFilename, (err, metadata) => {
                     if (err) {
                         reject(err);

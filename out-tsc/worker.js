@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const acBackgroundJob_1 = require("./models/acBackgroundJob");
+const models_1 = require("./models");
 const fs = require("fs");
 const _ = require("lodash");
 const Queue = require("bull");
-const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-const videoQueue = new Queue("video transcoding", redisUrl);
-const audioQueue = new Queue("audio transcoding", redisUrl);
+const redisUrl = process.env.REDIS_URL || null;
+const videoQueue = new Queue("VideoEncoding", redisUrl);
+const audioQueue = new Queue("AudioEncoding", redisUrl);
 const uploadAllToS3 = require('./s3').uploadAllToS3;
 const uploadToS3 = require('./s3').uploadToS3;
 const downloadFromS3 = require('./s3').downloadFromS3;
@@ -15,23 +15,24 @@ const createScreenshots = require('./video').createScreenshots;
 const encodeAudio = require('./audio').encodeAudio;
 videoQueue.process(async (job, done) => {
     let acBackgroundJob = null;
-    console.log(`Got job ${job.id}`);
+    console.log(`Got job ${job.id} ${JSON.stringify(job.data)}`);
     try {
         const jobData = job.data;
-        acBackgroundJob = await acBackgroundJob_1.AcBackgroundJob.findOne({
+        console.log(`AcBackgroundJob Id: ${jobData.acBackgroundJobId}`);
+        acBackgroundJob = await models_1.models.AcBackgroundJob.findOne({
             where: {
                 id: jobData.acBackgroundJobId,
             },
         });
         if (acBackgroundJob) {
             const tempInDir = `/tmp/${acBackgroundJob.id}/in`;
-            const tempOutVideoDir = `/tmp/${acBackgroundJob.id}/outVideo`;
+            const tempOutVideoDir = `/tmp/${acBackgroundJob.id}/out`;
             const tempOutVThumbnailDir = `/tmp/${acBackgroundJob.id}/outThumbnails`;
             await fs.promises.mkdir(tempInDir, { recursive: true });
             await fs.promises.mkdir(tempOutVideoDir, { recursive: true });
             await fs.promises.mkdir(tempOutVThumbnailDir, { recursive: true });
             const videoInFilename = `${tempInDir}/${jobData.fileKey}`;
-            const videoOutFilename = `${tempInDir}/${jobData.fileKey}`;
+            const videoOutFilename = `${tempOutVideoDir}/${jobData.fileKey}`;
             console.log(`Video Download from S3`);
             await downloadFromS3(process.env.S3_VIDEO_UPLOAD_BUCKET, jobData.fileKey, videoInFilename);
             console.log(`Video Encoding`);
@@ -43,7 +44,8 @@ videoQueue.process(async (job, done) => {
             await uploadAllToS3(tempOutVThumbnailDir, process.env.S3_VIDEO_THUMBNAIL_BUCKET);
             acBackgroundJob.progress = 100;
             acBackgroundJob.data.finalDuration = videoDuration;
-            acBackgroundJob.data.status = "Complete";
+            //@ts-ignore
+            acBackgroundJob.set('data.status', "Complete");
             await acBackgroundJob.save();
             console.log(`Video Job ${job.id} Completed`);
             done();
@@ -56,8 +58,10 @@ videoQueue.process(async (job, done) => {
     catch (error) {
         if (acBackgroundJob) {
             try {
+                console.log(`${JSON.stringify(acBackgroundJob)}`);
                 acBackgroundJob.progress = 0;
-                acBackgroundJob.data.status = "Error";
+                //@ts-ignore
+                acBackgroundJob.set('data.status', "Error");
                 await acBackgroundJob.save();
             }
             catch (innerError) {
@@ -74,7 +78,7 @@ audioQueue.process(async (job, done) => {
     console.log(`Got job ${job.id}`);
     try {
         const jobData = job.data;
-        acBackgroundJob = await acBackgroundJob_1.AcBackgroundJob.findOne({
+        acBackgroundJob = await models_1.models.AcBackgroundJob.findOne({
             where: {
                 id: jobData.acBackgroundJobId,
             },

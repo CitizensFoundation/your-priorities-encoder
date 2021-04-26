@@ -6,10 +6,10 @@ const fs = require("fs");
 const _ = require("lodash");
 const Queue = require("bull");
 
-const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+const redisUrl = process.env.REDIS_URL || null;
 
-const videoQueue = new Queue("video transcoding", redisUrl);
-const audioQueue = new Queue("audio transcoding", redisUrl);
+const videoQueue = new Queue("VideoEncoding", redisUrl);
+const audioQueue = new Queue("AudioEncoding", redisUrl);
 
 const uploadAllToS3 = require('./s3').uploadAllToS3;
 const uploadToS3 = require('./s3').uploadToS3;
@@ -22,11 +22,14 @@ const encodeAudio = require('./audio').encodeAudio;
 videoQueue.process(async (job: Job, done: Function) => {
   let acBackgroundJob: AcBackgroundJob | null = null;
 
-  console.log(`Got job ${job.id}`)
+  console.log(`Got job ${job.id} ${JSON.stringify(job.data)}`)
 
   try {
     const jobData = job.data as JobDataAttributes;
-    acBackgroundJob = await AcBackgroundJob.findOne({
+
+    console.log(`AcBackgroundJob Id: ${jobData.acBackgroundJobId}`)
+
+    acBackgroundJob = await models.AcBackgroundJob.findOne({
       where: {
         id: jobData.acBackgroundJobId,
       },
@@ -34,13 +37,13 @@ videoQueue.process(async (job: Job, done: Function) => {
 
     if (acBackgroundJob) {
       const tempInDir = `/tmp/${acBackgroundJob.id}/in`;
-      const tempOutVideoDir = `/tmp/${acBackgroundJob.id}/outVideo`;
+      const tempOutVideoDir = `/tmp/${acBackgroundJob.id}/out`;
       const tempOutVThumbnailDir = `/tmp/${acBackgroundJob.id}/outThumbnails`;
       await fs.promises.mkdir(tempInDir, { recursive: true });
       await fs.promises.mkdir(tempOutVideoDir, { recursive: true });
       await fs.promises.mkdir(tempOutVThumbnailDir, { recursive: true });
       const videoInFilename = `${tempInDir}/${jobData.fileKey}`;
-      const videoOutFilename = `${tempInDir}/${jobData.fileKey}`;
+      const videoOutFilename = `${tempOutVideoDir}/${jobData.fileKey}`;
 
       console.log(`Video Download from S3`)
 
@@ -83,7 +86,8 @@ videoQueue.process(async (job: Job, done: Function) => {
 
       acBackgroundJob.progress = 100;
       acBackgroundJob.data.finalDuration = videoDuration;
-      acBackgroundJob.data.status = "Complete";
+      //@ts-ignore
+      acBackgroundJob.set('data.status', "Complete");
       await acBackgroundJob.save();
       console.log(`Video Job ${job.id} Completed`)
       done();
@@ -94,8 +98,10 @@ videoQueue.process(async (job: Job, done: Function) => {
   } catch (error) {
     if (acBackgroundJob) {
       try {
+        console.log(`${JSON.stringify(acBackgroundJob)}`)
         acBackgroundJob.progress = 0;
-        acBackgroundJob.data.status = "Error";
+        //@ts-ignore
+        acBackgroundJob.set('data.status', "Error");
         await acBackgroundJob.save();
       } catch (innerError) {
         console.error(innerError);
@@ -114,7 +120,7 @@ audioQueue.process(async (job: Job, done: Function) => {
 
   try {
     const jobData = job.data as JobDataAttributes;
-    acBackgroundJob = await AcBackgroundJob.findOne({
+    acBackgroundJob = await models.AcBackgroundJob.findOne({
       where: {
         id: jobData.acBackgroundJobId,
       },

@@ -16,7 +16,7 @@ if (process.env.DATABASE_URL) {
     });
 }
 else {
-    const config = require(`${__dirname}/../config/config.json`)[env];
+    const config = require(`${__dirname}/../../config/config.json`)[env];
     sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
 exports.models = {

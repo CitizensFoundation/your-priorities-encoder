@@ -15,13 +15,19 @@ const s3 = new aws.S3({
 const uploadToS3 = async (bucket, keyName, filename) => {
     return await new Promise(async (resolve, reject) => {
         try {
-            const data = await fs.readFile(filename);
-            const results = await s3.upload({
-                Bucket: bucket,
-                Key: keyName,
-                Body: data,
+            fs.readFile(filename, async (error, data) => {
+                if (error) {
+                    reject(error);
+                }
+                else {
+                    const results = await s3.upload({
+                        Bucket: bucket,
+                        Key: keyName,
+                        Body: data,
+                    });
+                    resolve(results);
+                }
             });
-            resolve(results);
         }
         catch (error) {
             reject(error);
@@ -35,9 +41,12 @@ const downloadFromS3 = async (bucket, keyName, saveLocation) => {
                 Bucket: bucket,
                 Key: keyName,
             };
+            console.log(`DL1 ${params}`);
             const { Body } = await s3.getObject(params).promise();
-            await fs.writeFile(saveLocation, Body);
-            resolve(true);
+            fs.writeFile(saveLocation, Body, (completed) => {
+                console.log(`Saved: ${completed}`);
+                resolve(true);
+            });
         }
         catch (error) {
             reject(error);

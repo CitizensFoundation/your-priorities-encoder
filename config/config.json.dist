@@ -2,7 +2,7 @@
   "development": {
     "username": "puser",
     "password": "xxx",
-    "database": "cs_dev",
+    "database": "yrpri6_dev",
     "host": "127.0.0.1",
     "dialect": "postgres",
     "protocol": "postgres"
