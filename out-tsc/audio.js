@@ -63,7 +63,7 @@ const encodeFlac = async (videoInFilename, audioOutFilename) => {
                 console.error(`Error: ${err.message}`);
                 console.error(`ffmpeg output: ${stdout}`);
                 console.error(`ffmpeg stderr: ${stderr}`);
-                reject(err);
+                resolve(0);
             })
                 .save(audioOutFilename);
         }

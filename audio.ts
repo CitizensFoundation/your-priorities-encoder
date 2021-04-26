@@ -71,7 +71,7 @@ export const encodeFlac = async (
           console.error(`Error: ${err.message}`);
           console.error(`ffmpeg output: ${stdout}`);
           console.error(`ffmpeg stderr: ${stderr}`);
-          reject(err);
+          resolve(0);
         })
         .save(audioOutFilename);
     } catch (error) {
