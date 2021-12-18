@@ -77,7 +77,7 @@ const createScreenshots = async (filename, outFolder, jobData, duration) => {
             let screenshotConfig = {
                 filename: jobData.thumbnailPattern.replace("{count}", "%0000i") + ".png",
                 folder: outFolder,
-                size: "864x486",
+                size: jobData.portrait ? "864x486" : "864x486",
             };
             if (duration < 11) {
                 screenshotConfig = _.merge(screenshotConfig, {
