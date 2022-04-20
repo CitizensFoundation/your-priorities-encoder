@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "puser",
-    "password": "xxx",
-    "database": "yrpri6_dev",
-    "host": "127.0.0.1",
+    "username": "postgres",
+    "password": "postgres",
+    "database": "yrpri_dev",
+    "host": "db",
     "dialect": "postgres",
     "protocol": "postgres"
   },
