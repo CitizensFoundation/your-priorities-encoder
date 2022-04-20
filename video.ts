@@ -95,7 +95,7 @@ export const createScreenshots = async (
       let screenshotConfig = {
         filename: jobData.thumbnailPattern.replace("{count}", "%0000i")+".png",
         folder: outFolder,
-        size: "864x486",
+        size: jobData.portrait ? "486x864" : "864x486",
       };
 
       if (duration < 11) {
